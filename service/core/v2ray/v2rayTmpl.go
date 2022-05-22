@@ -690,6 +690,20 @@ func parseRoutingA(t *Template, routingInboundTags []string) error {
 									DestOverride: []string{"http", "tls"},
 								},
 							}
+							if sniffing := proto.NamedParams["sniffing"]; len(sniffing) > 0 {
+								// support inbound:a=socks(address: 127.0.0.1, port: 1080, sniffing:tls, sniffing:http)
+								// support inbound:a=http(address: 127.0.0.1, port: 1081, sniffing:"http,tls")
+								in.Sniffing.Enabled = true
+								var sniffs []string
+								for _, sniff := range sniffing {
+									fields := strings.Split(sniff, ",")
+									for i := range fields {
+										fields[i] = strings.TrimSpace(fields[i])
+									}
+									sniffs = append(sniffs, fields...)
+								}
+								in.Sniffing.DestOverride = sniffs
+							}
 							if proto.Name == "socks" {
 								if len(server.Users) > 0 {
 									in.Settings.Auth = "password"
@@ -1076,6 +1090,9 @@ func (t *Template) setInbound() error {
 				Listen:   "0.0.0.0",
 				Settings: &coreObj.InboundSettings{
 					Network: "udp",
+					// the non-A/AAAA/CNAME problem has been fixed by the setting in DNS outbound.
+					// so the Address here is innocuous.
+					// related commit: https://github.com/v2rayA/v2rayA/commit/ecbf915d4be8b9066955a21059519266bcca6b92
 					Address: "2.0.1.7",
 					Port:    53,
 				},
